@@ -12,3 +12,11 @@ MIT-BIH Atrial Fibrillation Database https://physionet.org/content/afdb/1.0.0/
 ```
 wget -r -N -c -np https://physionet.org/files/afdb/1.0.0/
 ```
+
+Baza, którą znalazła Juleczka:
+
+
+MIT-BIH Arrhythmia Database https://physionet.org/content/mitdb/1.0.0/
+```
+wget -r -N -c -np https://physionet.org/files/mitdb/1.0.0/
+```
