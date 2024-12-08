@@ -74,7 +74,104 @@ class MIT_BIH_Arythmia(Dataset):
         label = self.label_list[idx]
         return data, label
 
+class MIT_BIH_Arythmia_Base(Dataset):
+    def __init__(self, dataset_dir='Datasets/files/', fs=10, output_dir="processed_data/", histogram_path=None):
+        self.dataset_dir = dataset_dir
+        self.fs = fs
+        self.output_dir = output_dir
+        self.cumulative_histogram = []
+        self.histogram_path = histogram_path
+    
+    class MIT_BIH_AtrialFibrillation():
+        def __init__(self):
+            self.afib_data = []
+    
+    class MIT_BIH_Normal():
+        def __init__(self):
+            self.normal_data = []
 
+    def process_records(self):
+        """Przetwarzanie pojedynczego rekordu."""
+        if self.histogram_path and os.path.exists(self.histogram_path):
+            with open(self.histogram_path, 'rb') as f:
+                self.cumulative_histogram = pickle.load(f)
+            print("Załadowano histogram:", self.histogram_path)
+        else:
+            os.makedirs(self.output_dir, exist_ok=True)
+            exclusion_lst = ["00735", "03665", "04043", "04936", "05091", "06453", "08378", "08405", "08434", "08455"]
+            start_idx = 0
+            for file in os.listdir(self.dataset_dir):
+                name = re.match(r'^(.*\d\d+)\.atr$', file)
+                if name and name.group(1) not in exclusion_lst:
+                    print(f"Przetwarzanie: {name.group(1)}")
+                    record = wfdb.rdsamp(f"{self.dataset_dir}{name.group(1)}")
+                    annotation = wfdb.rdann(f"{self.dataset_dir}{name.group(1)}", 'atr')
+                    signal = record[0][:, 0]
+                    fs_original = record[1]["fs"]
+                    num_samples_target = int(signal.shape[0] * self.fs / fs_original)
+                    resampled_signal = scipy.signal.resample(signal, num_samples_target)
+                    annotation_times_resampled = (annotation.sample * self.fs) / fs_original
+                    data = {
+                        "rec": resampled_signal,
+                        "ann": {
+                            "sample": annotation_times_resampled.astype(int).tolist(),
+                            "aux_note": annotation.aux_note
+                        }
+                    }
+                    if annotation == 'Artial fibliration':
+                        output_filename = os.path.join(self.output_dir + '/af/', f"{name.group(1)}.pkl")
+                    else:
+                        output_filename = os.path.join(self.output_dir + '/normal/', f"{name.group(1)}.pkl")
+                    with open(output_filename, 'wb') as f:
+                        pickle.dump(data, f)
+                    num_samples = len(data["ann"]["sample"])
+                    self.cumulative_histogram.append((start_idx, start_idx + num_samples, output_filename))
+                    start_idx += num_samples
+            histogram_path = os.path.join(self.output_dir, "cumulative_histogram.pkl")
+            with open(histogram_path, 'wb') as f:
+                pickle.dump(self.cumulative_histogram, f)
+            print("Przetwarzanie zakończone. Dane zapisane w:", self.output_dir)     
+
+    def __len__(self):
+        return self.cumulative_histogram[-1][1]
+
+    def __getitem__(self, idx):
+    # Przejdź przez histogram skumulowany, aby znaleźć odpowiedni plik i zakres indeksów
+        for start, end, filename in self.cumulative_histogram:
+            if start <= idx < end:
+                local_idx = idx - start  # Oblicz indeks lokalny w danym pliku
+                break
+        else:
+            raise IndexError("Index out of range")  # Jeśli nie znajdziesz odpowiedniego zakresu, zgłoś błąd
+        
+        # Załaduj dane z odpowiedniego pliku
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        
+        # Pobierz sygnał EKG i informacje o annotacjach
+        rec = data["rec"]
+        sample_idx = data["ann"]["sample"][local_idx]  # Indeks próbki w danym pliku
+        aux_note = data["ann"]["aux_note"][local_idx]  # Etykieta (np. AFIB lub NORMAL)
+        
+        # Wyciąć odpowiedni segment EKG wokół punktu annotacji
+        segment = extract_segment_with_padding(rec, sample_idx, self.N)
+        
+        # Ustal etykietę: 1 dla AFIB, 0 dla NORMAL
+        label = 1 if aux_note == '(AFIB' else 0
+        return torch.Tensor(segment).unsqueeze(0), label
+
+    def count_afibs(self):
+        afib_count = 0
+        for start, end, filename in self.cumulative_histogram:
+            # Załaduj dane z pliku
+            with open(filename, 'rb') as f:
+                data = pickle.load(f)
+            
+            # Sprawdź wszystkie etykiety i policz AFIB
+            for aux_note in data["ann"]["aux_note"]:
+                if "(AFIB" in aux_note:
+                    afib_count += 1
+        return afib_count 
 
 
 class MIT_BIH_Arythmia_Long(Dataset):
@@ -87,7 +184,7 @@ class MIT_BIH_Arythmia_Long(Dataset):
             print("Załadowano histogram:", histogram_path)
         else:
             os.makedirs(output_dir, exist_ok=True)
-            exclusion_lst = [str(i) for i in range(10, 11)]
+            exclusion_lst = ["00735", "03665", "04043", "04936", "05091", "06453", "08378", "08405", "08434", "08455"]
             self.cumulative_histogram = []
             start_idx = 0
             for file in os.listdir(dataset_dir):
