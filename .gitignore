@@ -3,6 +3,8 @@ Datasets/*
 model_09.keras
 MIT-BIH_Arrythmia.json
 MIT-BIH_Arrythmia2.json
+env/
+processed_data/
 zofia_testy
 zofia_testy/*
 */__pycache__
