@@ -9,3 +9,6 @@ zofia_testy
 zofia_testy/*
 */__pycache__
 processed_data
+PTB-XL.ipynb
+archive/coorteeqsrafva.csv
+archive/ecgeq-500hzsrfava.npy
