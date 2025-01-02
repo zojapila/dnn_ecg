@@ -7,3 +7,6 @@ zofia_testy
 zofia_testy/*
 */__pycache__
 processed_data
+evaluation_files/baseline_alg
+env
+processed_data3
