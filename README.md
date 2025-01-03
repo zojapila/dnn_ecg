@@ -1,5 +1,6 @@
 # dnn_ecg
 
+
 Bazy polecane przez prowadzącego:
 
 
@@ -24,6 +25,6 @@ wget -r -N -c -np https://physionet.org/files/mitdb/1.0.0/
 
 # Użyte Bazy
 https://physionet.org/content/afdb/1.0.0/
-
+129038jr9hj3
 https://www.physionet.org/content/mitdb/1.0.0/
 
