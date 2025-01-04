@@ -84,7 +84,7 @@ class RecordEvaluator:
 
         # Parametry okna i wsadu
         input_rr_samples = 30
-        batch_size = 64
+        batch_size = 32
         qrs_af_probabs = np.zeros(shape=(len(qrs_inds),), dtype=np.float32)
         qrs_af_overlap = np.zeros(shape=(len(qrs_inds),), dtype=np.float32)
         pred_step = input_rr_samples // 3
