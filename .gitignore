@@ -9,3 +9,5 @@ zofia_testy/*
 processed_data
 env/
 processed_data3/
+baseline_alg/
+evaluation_files/ver*
